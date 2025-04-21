@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useRef } from "react";
 import { Button, Row, Col, Modal } from "react-bootstrap";
 import CreatableSelect from "react-select/creatable";
+import { upload } from "@vercel/blob/client";
 import html2canvas from "html2canvas";
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -53,41 +54,33 @@ export default function App() {
     const random = Math.floor(Math.random() * funTemplates.length);
     return funTemplates[random];
   };
-
   const exportImage = async () => {
     if (!resultRef.current) return;
-    const selectPortals = document.querySelectorAll(".react-select__menu");
-    selectPortals.forEach(p => p.setAttribute("style", "display:none"));
-
+  
     try {
       const canvas = await html2canvas(resultRef.current, {
         backgroundColor: "#ffffff",
         useCORS: true,
         scale: 2
       });
-      const dataUrl = canvas.toDataURL("image/png");
-      setPreviewUrl(dataUrl);
-      setShowModal(true);
-
-      // Upload image
-      const blob = await (await fetch(dataUrl)).blob();
-      const formData = new FormData();
-      formData.append("image", blob, "mirror.png");
-
-      const res = await fetch("https://api.vercel.com/v2/blob/upload", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN}`
-        },
-        body: formData
+  
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/png")
+      );
+  
+      if (!blob) throw new Error("Failed to convert canvas to blob");
+  
+      const { url } = await upload("personality-mirror.png", blob, {
+        access: "public",
+        handleUploadUrl: '/api/upload',
       });
-      const data = await res.json();
-      setSharedUrl(data.url || data.url?.pathname || '');
+  
+      setPreviewUrl(url);
+      setSharedUrl(url);
+      setShowModal(true);
     } catch (error) {
-      console.error("Export failed:", error);
-      alert("An error occurred while generating the image.");
-    } finally {
-      selectPortals.forEach(p => p.setAttribute("style", "display:block"));
+      console.error("Upload failed:", error);
+      alert("An error occurred while exporting.");
     }
   };
 
@@ -184,27 +177,8 @@ export default function App() {
       </div>
 
       <Button className="mt-3 me-2" variant="secondary" onClick={exportImage}>
-        Preview and Upload Image
+        Share
       </Button>
-
-      {sharedUrl && (
-        <Button className="mt-4 d-block mx-auto"
-          variant="outline-primary"
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({
-                title: "My Personality Mirror",
-                text: "Check out who I am based on the 5 people closest to me!",
-                url: window.location.origin + sharedUrl
-              }).catch(console.error);
-            } else {
-              alert("Sharing is not supported on this device.");
-            }
-          }}
-        >
-          📲 Share with friends
-        </Button>
-      )}
 
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
         <Modal.Header closeButton>
@@ -227,6 +201,24 @@ export default function App() {
           }}>
             Download Image
           </Button>
+          {sharedUrl && (
+        <Button className="mt-4 d-block mx-auto"
+          variant="outline-primary"
+          onClick={() => {
+            if (navigator.share) {
+              navigator.share({
+                title: "My Personality Mirror",
+                text: "Check out who I am based on the 5 people closest to me!",
+                url: previewUrl
+              }).catch(console.error);
+            } else {
+              alert("Sharing is not supported on this device.");
+            }
+          }}
+        >
+          📲 Share with friends
+        </Button>
+      )}
         </Modal.Footer>
       </Modal>
     </div>

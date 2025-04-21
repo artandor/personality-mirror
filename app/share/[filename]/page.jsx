@@ -1,5 +1,6 @@
 
-export default function SharePage({ params }) {
+export default async function SharePage(props) {
+  const params = await props.params;
   const { filename } = params;
   return (
     <div style={{

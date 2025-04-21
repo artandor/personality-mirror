@@ -1,6 +1,6 @@
 export const metadata = {
   title: 'Personality Mirror',
-  description: 'Visualize your personality based on your inner circle',
+  description: 'Visualize your personality based on your inner circle'
 };
 
 export default function RootLayout({ children }) {
