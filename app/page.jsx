@@ -69,16 +69,20 @@ export default function App() {
       setPreviewUrl(dataUrl);
       setShowModal(true);
 
+      // Upload image
       const blob = await (await fetch(dataUrl)).blob();
       const formData = new FormData();
       formData.append("image", blob, "mirror.png");
 
-      const res = await fetch("/api/upload", {
+      const res = await fetch("https://api.vercel.com/v2/blob/upload", {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN}`
+        },
         body: formData
       });
       const data = await res.json();
-      setSharedUrl(data.url);
+      setSharedUrl(data.url || data.url?.pathname || '');
     } catch (error) {
       console.error("Export failed:", error);
       alert("An error occurred while generating the image.");
