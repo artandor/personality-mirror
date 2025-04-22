@@ -1,10 +1,10 @@
-"use client"
+"use client";
 import React, { useState, useMemo, useRef } from "react";
 import { Button, Row, Col, Modal } from "react-bootstrap";
 import CreatableSelect from "react-select/creatable";
 import { upload } from "@vercel/blob/client";
-import html2canvas from "html2canvas";
 import "bootstrap/dist/css/bootstrap.min.css";
+import PersonalityPreview from '../components/PersonalityPreview';
 
 const defaultPerson = { name: "", traits: [] };
 
@@ -54,32 +54,33 @@ export default function App() {
     const random = Math.floor(Math.random() * funTemplates.length);
     return funTemplates[random];
   };
+
   const exportImage = async () => {
-    if (!resultRef.current) return;
-  
     try {
-      const canvas = await html2canvas(resultRef.current, {
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        scale: 2
+      const response = await fetch("/api/story-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          traits: generatedTraits,
+          idealTraits,
+          summary: generateSummary(),
+          people: people,
+        }),
       });
-  
-      const blob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/png")
-      );
-  
-      if (!blob) throw new Error("Failed to convert canvas to blob");
-  
-      const { url } = await upload("personality-mirror.png", blob, {
-        access: "public",
-        handleUploadUrl: '/api/upload',
-      });
-  
-      setPreviewUrl(url);
-      setSharedUrl(url);
+
+      const blob = await response.blob();
+      const dataUrl = URL.createObjectURL(blob);
+      setPreviewUrl(dataUrl);
       setShowModal(true);
+
+      const { url } = await upload("share/personality-mirror.png", blob, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+
+      setSharedUrl(url);
     } catch (error) {
-      console.error("Upload failed:", error);
+      console.error("Image generation or upload failed:", error);
       alert("An error occurred while exporting.");
     }
   };
@@ -89,7 +90,7 @@ export default function App() {
   return showIntro ? (
     <div className="container py-5 text-center">
       <h1 className="mb-4">🧬 Discover Your Mirror</h1>
-      <p className="lead">You are the average of the 5 people you spend the most time with.<br/>Let's find out who you are, and who you want to become.</p>
+      <p className="lead">You are the average of the 5 people you spend the most time with.<br />Let's find out who you are, and who you want to become.</p>
       <div className="my-4">
         <img
           src="/intro-illustration.png"
@@ -101,78 +102,79 @@ export default function App() {
     </div>
   ) : (
     <div className="container py-4">
-    {people.map((person, index) => (
-      <div className="mb-4 p-3 border rounded" key={index}>
-        <Row>
-          <Col md={4} className="mb-2">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Name"
-              value={person.name}
-              onChange={(e) => handlePersonChange(index, "name", e.target.value)}
-            />
-          </Col>
-          <Col md={8}>
-            <CreatableSelect
-              classNamePrefix="react-select"
-              isMulti
-              value={person.traits}
-              onChange={(selected) => handlePersonChange(index, "traits", selected)}
-              placeholder="Select or create personality traits"
-            />
-          </Col>
-        </Row>
+      {people.map((person, index) => (
+        <div className="mb-4 p-3 border rounded" key={index}>
+          <Row>
+            <Col md={4} className="mb-2">
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Name"
+                value={person.name}
+                onChange={(e) => handlePersonChange(index, "name", e.target.value)}
+              />
+            </Col>
+            <Col md={8}>
+              <CreatableSelect
+                classNamePrefix="react-select"
+                isMulti
+                value={person.traits}
+                onChange={(selected) => handlePersonChange(index, "traits", selected)}
+                placeholder="Select or create personality traits"
+              />
+            </Col>
+          </Row>
+        </div>
+      ))}
+
+      <div className="mb-4 p-3 border rounded">
+        <h5>🌟 Traits You Aspire To</h5>
+        <CreatableSelect
+          classNamePrefix="react-select"
+          isMulti
+          options={allAvailableTraits}
+          value={idealTraits}
+          onChange={(selected) => setIdealTraits(selected)}
+          placeholder="Select or create traits you want to embody"
+        />
       </div>
-    ))}
 
-    <div className="mb-4 p-3 border rounded">
-      <h5>🌟 Traits You Aspire To</h5>
-      <CreatableSelect
-        classNamePrefix="react-select"
-        isMulti
-        options={allAvailableTraits}
-        value={idealTraits}
-        onChange={(selected) => setIdealTraits(selected)}
-        placeholder="Select or create traits you want to embody"
-      />
-    </div>
-    <div className="container py-4">
-      <Button variant="primary" onClick={generateTraits}>
-        Generate My Personality Profile
-      </Button>
+      <div className="container py-4">
+        <Button variant="primary" onClick={generateTraits}>
+          Generate My Personality Profile
+        </Button>
 
-      <div ref={resultRef} className="mt-5">
-        <h4 className="text-center mb-4">🧠 Personality Snapshot</h4>
-        <Row>
+        <div ref={resultRef} className="mt-5">
+          <h4 className="text-center mb-4">🧠 Personality Snapshot</h4>
+          <Row>
+            {generatedTraits.length > 0 && (
+              <Col md={6} className="mb-4">
+                <div className="p-3 border rounded h-100">
+                  <h5 className="text-center">🤝 Based on Your Circle</h5>
+                  <ul className="mb-0">
+                    {generatedTraits.map((trait, i) => (
+                      <li key={i}>{trait}</li>
+                    ))}
+                  </ul>
+                </div>
+              </Col>
+            )}
+            {idealTraits.length > 0 && (
+              <Col md={6} className="mb-4">
+                <div className="p-3 border rounded h-100">
+                  <h5 className="text-center">🚀 The Person You Want to Be</h5>
+                  <ul className="mb-0">
+                    {idealTraits.map((trait, i) => (
+                      <li key={i}>{trait.label}</li>
+                    ))}
+                  </ul>
+                </div>
+              </Col>
+            )}
+          </Row>
           {generatedTraits.length > 0 && (
-            <Col md={6} className="mb-4">
-              <div className="p-3 border rounded h-100">
-                <h5 className="text-center">🤝 Based on Your Circle</h5>
-                <ul className="mb-0">
-                  {generatedTraits.map((trait, i) => (
-                    <li key={i}>{trait}</li>
-                  ))}
-                </ul>
-              </div>
-            </Col>
+            <p className="mt-4 text-center fst-italic px-3" style={{ maxWidth: '700px', margin: '0 auto' }}>{generateSummary()}</p>
           )}
-          {idealTraits.length > 0 && (
-            <Col md={6} className="mb-4">
-              <div className="p-3 border rounded h-100">
-                <h5 className="text-center">🚀 The Person You Want to Be</h5>
-                <ul className="mb-0">
-                  {idealTraits.map((trait, i) => (
-                    <li key={i}>{trait.label}</li>
-                  ))}
-                </ul>
-              </div>
-            </Col>
-          )}
-        </Row>
-        {generatedTraits.length > 0 && (
-          <p className="mt-4 text-center fst-italic px-3" style={{ maxWidth: '700px', margin: '0 auto' }}>{generateSummary()}</p>
-        )}
         </div>
       </div>
 
@@ -202,23 +204,23 @@ export default function App() {
             Download Image
           </Button>
           {sharedUrl && (
-        <Button className="mt-4 d-block mx-auto"
-          variant="outline-primary"
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({
-                title: "My Personality Mirror",
-                text: "Check out who I am based on the 5 people closest to me!",
-                url: previewUrl
-              }).catch(console.error);
-            } else {
-              alert("Sharing is not supported on this device.");
-            }
-          }}
-        >
-          📲 Share with friends
-        </Button>
-      )}
+            <Button className="mt-4 d-block mx-auto"
+              variant="outline-primary"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: "My Personality Mirror",
+                    text: "Check out who I am based on the 5 people closest to me!",
+                    url: sharedUrl
+                  }).catch(console.error);
+                } else {
+                  alert("Sharing is not supported on this device.");
+                }
+              }}
+            >
+              📲 Share with friends
+            </Button>
+          )}
         </Modal.Footer>
       </Modal>
     </div>
