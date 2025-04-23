@@ -34,9 +34,9 @@ export default function StoryImage({ traits, idealTraits, summary, people }) {
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", backgroundColor: "#ffffffcc", padding: "30px", borderRadius: "24px", marginBottom: "30px" }}>
         <h2 style={{ fontSize: "36px", marginBottom: "16px" }}>🤝 Based on Your Circle</h2>
-        <ul style={{ listStyle: "none", padding: 0, fontSize: "28px", textAlign: "left", width: "100%" }}>
+        <ul style={{ listStyle: "none", padding: 0, fontSize: "28px", textAlign: "center", width: "100%" }}>
           {traits.map((trait, i) => (
-            <li key={i}>• {trait}</li>
+            <li key={i}>&nbsp;• {trait}</li>
           ))}
         </ul>
       </div>
@@ -44,9 +44,9 @@ export default function StoryImage({ traits, idealTraits, summary, people }) {
       {idealTraits.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", backgroundColor: "#ffffffcc", padding: "30px", borderRadius: "24px", marginBottom: "30px" }}>
           <h2 style={{ fontSize: "36px", marginBottom: "16px" }}>🚀 The Person You Want to Be</h2>
-          <ul style={{ listStyle: "none", padding: 0, fontSize: "28px", textAlign: "left", width: "100%" }}>
+          <ul style={{ listStyle: "none", padding: 0, fontSize: "28px", textAlign: "center", width: "100%" }}>
             {idealTraits.map((trait, i) => (
-              <li key={i}>• {trait.label}</li>
+              <li key={i}>&nbsp;• {trait.label}</li>
             ))}
           </ul>
         </div>
